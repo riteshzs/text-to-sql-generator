@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text to SQL Query</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Days+One&family=Kalnia+Glaze:wght@100..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+</head>
+<body>
+  <div class="container">
+    <h1 class="new-text">Text to SQL Query</h1>
+    <i class="fa-solid fa-database"></i>
+    <form id="queryForm">
+      <div class="mb-3">
+        <label for="query" class="form-label">Enter your query:</label><br>
+        <textarea id="query" placeholder="Search..." class="form-control" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+    </form>
+    <div id="error" class="alert alert-danger mt-3 d-none"></div>
+    <div id="chartContainer" class="chart-container d-none">
+      <h2>Data Visualization</h2>
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.getElementById('queryForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const query = document.getElementById('query').value;
+      const submitBtn = document.getElementById('submitBtn');
+      const errorDiv = document.getElementById('error');
+      const chartContainer = document.getElementById('chartContainer');
+      const chartCanvas = document.getElementById('chart');
+
+      submitBtn.disabled = true;
+      errorDiv.classList.add('d-none');
+      chartContainer.classList.add('d-none');
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch data');
+        
+        const data = await response.json();
+        
+        if (data.labels && data.values) {
+          // Clear any existing chart
+          Chart.getChart(chartCanvas)?.destroy();
+          
+          new Chart(chartCanvas, {
+            type: 'bar',
+            data: {
+              labels: data.labels,
+              datasets: [{
+                label: 'Data',
+                data: data.values,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+              }],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: {
+                  beginAtZero: true,
+                },
+                y: {
+                  beginAtZero: true,
+                },
+              },
+            },
+          });
+          
+          chartContainer.classList.remove('d-none');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'Failed to fetch data';
+        errorDiv.classList.remove('d-none');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
